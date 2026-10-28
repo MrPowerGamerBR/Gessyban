@@ -11,7 +11,7 @@ void main() {
         float pixelSize = 1.0 + (128.0 * uFadeAmount);
 
         // Calculate the pixel size in texture coordinates
-        vec2 texelSize = 1.0 / textureSize(uScreenTexture, 0);
+        vec2 texelSize = 1.0 / vec2(textureSize(uScreenTexture, 0));
         vec2 pixelizationFactor = pixelSize * texelSize;
 
         // Get the pixelated texture coordinate

@@ -12,13 +12,11 @@ class Gessyban(
     val gl: GLContext,
     val gpu: GPUResources,
     val vfs: VirtualFileSystem,
-    val textureManager: TextureManager
+    val gameResources: GameResources
 ) {
-    val meshManager = JsonMeshManager()
     private val skeletonManager = SkeletonManager()
     private val startedAt = currentTimeMillis()
 
-    val gameResources = GameResources(this, vfs)
     val random = Random.Default
 
     var zoom = 3f

@@ -10,7 +10,7 @@ import org.lwjgl.glfw.GLFWImage
 import org.lwjgl.system.MemoryUtil
 
 class LWJGLTextureManager(val gpu: GPUResources, val vfs: VirtualFileSystem) : TextureManager {
-    override fun loadTexture(
+    override suspend fun loadTexture(
         filePath: String,
         textureInterpolationType: Int
     ): Texture {

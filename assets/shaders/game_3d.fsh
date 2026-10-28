@@ -23,7 +23,7 @@ void main() {
     }
 
     if (uUseNormalsAsColor) {
-        FragColor = vec4((vNormal.r + 1.0) / 2, (vNormal.g + 1.0) / 2, (vNormal.b + 1.0) / 2, 1.0);
+        FragColor = vec4((vNormal.r + 1.0) / 2.0, (vNormal.g + 1.0) / 2.0, (vNormal.b + 1.0) / 2.0, 1.0);
         return;
     }
 

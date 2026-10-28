@@ -150,7 +150,7 @@ class JsonMeshManager {
         // glDisableVertexAttribArray(1)
         // glDisableVertexAttribArray(0)
 
-        return MeshRenderingState(gl, quadVAO, meshModel.faces.size * 9)
+        return MeshRenderingState(gl, quadVAO, meshModel.faces.size * 3)
     }
 
     // This creates a mesh for the 2D shader
@@ -261,10 +261,21 @@ class JsonMeshManager {
         gl.bufferData(GL_ARRAY_BUFFER, quadData, GL_STATIC_DRAW)
         gl.vertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 2L * Float.SIZE_BYTES)
 
+        // Vertex Bones VBO
+        // This mesh is also rendered with the 3D shader (pressure plates), which has an int bone ID attribute
+        // Desktop OpenGL uses the attribute's default value if it is missing, but WebGL2 refuses to draw if a missing attribute is an int!
+        val vertexBonesVbo = gl.genBuffers()
+        gl.enableVertexAttribArray(2)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vertexBonesVbo)
+        gl.bufferData(GL_ARRAY_BUFFER, IntArray(meshModel.faces.size * 3), GL_STATIC_DRAW)
+        // YES WE NEED TO USE glVertexAttribIPointer FOR GL_INT!!!
+        gl.vertexAttribIPointer(2, 1, GL_INT, 0, 0)
+
         // Unbind
         gl.bindBuffer(GL_ARRAY_BUFFER, 0)
         gl.bindVertexArray(0)
         // TODO:
+        // glDisableVertexAttribArray(2)
         // glDisableVertexAttribArray(1)
         // glDisableVertexAttribArray(0)
 
@@ -393,29 +404,32 @@ class JsonMeshManager {
         val vbo4 = gl.genBuffers()
 
         // Position VBO
-        gl.enableVertexAttribArray(0)
         gl.bindBuffer(GL_ARRAY_BUFFER, vbo1)
         gl.bufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
-        gl.vertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0)
+        buildVertexAttributes {
+            vec3(0)
+        }.apply(gl)
 
         // Texture Coordinates VBO
-        gl.enableVertexAttribArray(1)
         gl.bindBuffer(GL_ARRAY_BUFFER, vbo2)
         gl.bufferData(GL_ARRAY_BUFFER, textureCoordinates, GL_STATIC_DRAW)
-        gl.vertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
+        buildVertexAttributes {
+            vec2(1)
+        }.apply(gl)
 
         // Vertex Bones VBO
-        gl.enableVertexAttribArray(2)
         gl.bindBuffer(GL_ARRAY_BUFFER, vbo3)
         gl.bufferData(GL_ARRAY_BUFFER, vertexBoneIds, GL_STATIC_DRAW)
-        // YES WE NEED TO USE glVertexAttribIPointer FOR GL_INT!!!
-        gl.vertexAttribIPointer(2, 1, GL_INT, 0, 0)
+        buildVertexAttributes {
+            int(2)
+        }.apply(gl)
 
         // Normals VBO
-        gl.enableVertexAttribArray(3)
         gl.bindBuffer(GL_ARRAY_BUFFER, vbo4)
         gl.bufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW)
-        gl.vertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0)
+        buildVertexAttributes {
+            vec3(3)
+        }.apply(gl)
 
         // Unbind
         gl.bindBuffer(GL_ARRAY_BUFFER, 0)
@@ -470,7 +484,7 @@ class JsonMeshManager {
 
         return Skeleton(
             skeleton,
-            MeshRenderingState(gl, quadVAO, meshModel.faces.size * 9),
+            MeshRenderingState(gl, quadVAO, meshModel.faces.size * 3),
             skeletonGroupNamesToSkeletonGroupIds,
             globalBindTransformsMatrices,
             inverseBindPoseMatrices

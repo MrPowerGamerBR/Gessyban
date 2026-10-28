@@ -1,9 +1,12 @@
 package net.perfectdreams.gessyban.lwjgl
 
+import kotlinx.coroutines.runBlocking
+import net.perfectdreams.gessyban.GameResources
 import net.perfectdreams.gessyban.Gessyban
 import net.perfectdreams.gessyban.Stage
 import net.perfectdreams.gessyban.VirtualFileSystem
 import net.perfectdreams.gessyban.lwjgl.textures.LWJGLTextureManager
+import net.perfectdreams.gessyban.meshes.JsonMeshManager
 import net.perfectdreams.harmony.gl.GPUResources
 import net.perfectdreams.harmony.gl.opengl.OpenGLContext
 import net.perfectdreams.harmony.gl.opengl.OpenGLDebugging
@@ -168,7 +171,8 @@ class GessybanLWJGL {
         // Set the app icon
         textureManager.setApplicationIcon(window, "textures/gessy_trauma.png")
 
-        this.gessyban = Gessyban(gl, gpu, vfs, textureManager)
+        val resources = runBlocking { GameResources.load(gpu, textureManager, JsonMeshManager(),  vfs) }
+        this.gessyban = Gessyban(gl, gpu, vfs, resources)
 
         // Set the clear color
         gl.clearColor(23 / 255f, 35 / 255f, 35 / 255f, 1.0f)
