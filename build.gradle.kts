@@ -1,20 +1,22 @@
 plugins {
-    kotlin("jvm") version "2.4.21"
-    kotlin("plugin.serialization") version "2.4.21"
+    kotlin("multiplatform") version "2.4.21" apply false
+    kotlin("plugin.serialization") version "2.4.21" apply false
     application
 }
 
 group = "net.perfectdreams.gessyban"
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
+allprojects {
+    repositories {
+        mavenCentral()
+    }
 }
 
 val lwjglVersion = "3.3.6"
 val lwjglNatives = "natives-linux"
 
-dependencies {
+/* dependencies {
     implementation("net.perfectdreams.harmony:harmony-opengl-lwjgl:0.0.1-SNAPSHOT")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.8.1")
@@ -51,4 +53,4 @@ kotlin {
 
 application {
     mainClass = "net.perfectdreams.gessyban.GessybanLauncher"
-}
+} */

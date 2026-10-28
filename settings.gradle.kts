@@ -4,3 +4,6 @@ plugins {
 rootProject.name = "Gessyban"
 
 includeBuild("../HarmonyFramework")
+
+include(":gessyban-common")
+include(":gessyban-lwjgl")
