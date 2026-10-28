@@ -1,6 +1,6 @@
 package net.perfectdreams.gessyban.skeletons
 
-import net.perfectdreams.harmony.gl.meshes.MeshRenderingState
+import net.perfectdreams.oldharmony.gl.meshes.MeshRenderingState
 import org.joml.Matrix4f
 
 class Skeleton(

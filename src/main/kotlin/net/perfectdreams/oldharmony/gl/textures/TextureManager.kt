@@ -1,5 +1,10 @@
-package net.perfectdreams.harmony.gl.textures
+package net.perfectdreams.oldharmony.gl.textures
 
+import net.perfectdreams.harmony.gl.ByteArrayTextureSource
+import net.perfectdreams.harmony.gl.GLConstants
+import net.perfectdreams.harmony.gl.GLContext
+import net.perfectdreams.harmony.gl.GPUResources
+import net.perfectdreams.harmony.gl.textures.Texture
 import org.lwjgl.glfw.GLFW.glfwSetWindowIcon
 import org.lwjgl.glfw.GLFWImage
 import org.lwjgl.opengl.GL11
@@ -12,15 +17,15 @@ import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.nio.file.Files
 import java.nio.file.Paths
+import javax.swing.Spring
 import kotlin.use
 
-
-class TextureManager {
+class TextureManager(val gpu: GPUResources) {
     fun loadTexture(
         filePath: String,
         textureInterpolationType: Int
     ): Texture {
-        stbi_set_flip_vertically_on_load(true)
+        // stbi_set_flip_vertically_on_load(true)
 
         var imageBuffer: ByteBuffer?
         // Load image file into a ByteBuffer
@@ -76,45 +81,13 @@ class TextureManager {
             val width = w.get()
             val height = h.get()
 
-            // --- OpenGL Texture Creation ---
-
-            // 1. Generate and bind a new texture ID
-            val textureId = GL11.glGenTextures()
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId)
-
-            // 2. Tell OpenGL how to unpack the RGBA bytes.
-            // Each component is 1 byte size
-            GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1)
-
-            // 3. Set texture parameters
-            // Repeat image in both directions
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT)
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT)
-            // When stretching the image, pixelate
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, textureInterpolationType)
-            // When shrinking the image, pixelate
-            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, textureInterpolationType)
-
-            // 4. Upload the texture data
-            GL11.glTexImage2D(
-                GL11.GL_TEXTURE_2D,
-                0,
-                GL11.GL_RGBA,
-                width,
-                height,
-                0,
-                GL11.GL_RGBA,
-                GL11.GL_UNSIGNED_BYTE,
-                decodedImage
-            )
-
-            // 5. Generate Mipmaps
-            GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D)
-
-            // --- Cleanup ---
-            STBImage.stbi_image_free(decodedImage) // Free the decoded image memory
-            MemoryUtil.memFree(imageBuffer) // Free the raw file buffer
-            return Texture(textureId, width, height)
+            val realPixels = ByteBuffer
+                .allocate(decodedImage.capacity())
+                .put(decodedImage)
+                .flip()
+            decodedImage.flip()
+            STBImage.stbi_image_free(decodedImage)
+            return gpu.createTexture(ByteArrayTextureSource(width, height, realPixels.array()), GLConstants.GL_CLAMP_TO_EDGE, GLConstants.GL_CLAMP_TO_EDGE, textureInterpolationType, textureInterpolationType)
         }
     }
 

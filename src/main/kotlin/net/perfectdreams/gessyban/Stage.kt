@@ -1,30 +1,21 @@
 package net.perfectdreams.gessyban
 
-import net.perfectdreams.gessyban.framebuffers.TextureDumper
-import net.perfectdreams.harmony.gl.shaders.bind
+import net.perfectdreams.harmony.gl.GLConstants.GL_BLEND
+import net.perfectdreams.harmony.gl.GLConstants.GL_COLOR_BUFFER_BIT
+import net.perfectdreams.harmony.gl.GLConstants.GL_DEPTH_BUFFER_BIT
+import net.perfectdreams.harmony.gl.GLConstants.GL_DEPTH_TEST
+import net.perfectdreams.harmony.gl.GLConstants.GL_ONE_MINUS_SRC_ALPHA
+import net.perfectdreams.harmony.gl.GLConstants.GL_SRC_ALPHA
+import net.perfectdreams.harmony.gl.framebuffers.withFramebuffer
+import net.perfectdreams.harmony.gl.pipelines.Pipeline
+import net.perfectdreams.harmony.gl.rendertarget.RenderTargetScope
+import net.perfectdreams.harmony.gl.shaders.withProgram
+import net.perfectdreams.harmony.graphics.batcher.withSpritePipeline
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector2f
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.glfwGetTime
-import org.lwjgl.opengl.GL11.GL_BLEND
-import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
-import org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT
-import org.lwjgl.opengl.GL11.GL_DEPTH_TEST
-import org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA
-import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
-import org.lwjgl.opengl.GL11.glBlendFunc
-import org.lwjgl.opengl.GL11.glClear
-import org.lwjgl.opengl.GL11.glClearColor
-import org.lwjgl.opengl.GL11.glDisable
-import org.lwjgl.opengl.GL11.glEnable
-import org.lwjgl.opengl.GL11.glViewport
-import org.lwjgl.opengl.GL13.GL_TEXTURE0
-import org.lwjgl.opengl.GL13.GL_TEXTURE1
-import org.lwjgl.opengl.GL13.GL_TEXTURE2
-import org.lwjgl.opengl.GL13.GL_TEXTURE3
-import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
-import org.lwjgl.opengl.GL30.glBindFramebuffer
 import java.io.File
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -55,11 +46,10 @@ sealed class Stage(val m: Gessyban) {
                 m.stage = gameStage
             }
 
-            m.gameResources.menuFramebuffer.bind {
-                glDisable(GL_DEPTH_TEST)
-                glEnable(GL_BLEND)
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-                glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+            m.gpu.onRenderTarget(m.gameResources.menuFramebuffer) {
+                m.gl.enable(GL_BLEND)
+                m.gl.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 val width = 1280f
                 val height = 720f
@@ -67,54 +57,52 @@ sealed class Stage(val m: Gessyban) {
                 val halfWidth = width / 2
                 val halfHeight = height / 2
 
-                m.gameResources.shader2d.bind {
-                    this.uModel.set(
-                        Matrix4f()
-                            .translate(halfWidth - ((52f * 16) / 2f), 80f + (20f * sin((glfwGetTime()).toFloat())), 0f)
-                            .scale(52f * 16, 11f * 16, 1f)
-                            .get(FloatArray(16))
-                    )
-                    this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
-                    this.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.uTexture.set(GL_TEXTURE0, m.gameResources.logoTexture)
-
-                    m.gameResources.screenQuadMesh.render()
-                }
-
                 val buttonPosition = Vector2f(halfWidth - ((38f * 8) / 2f), 400f)
 
-                m.gameResources.shader2d.bind {
-                    this.uModel.set(
-                        Matrix4f()
-                            .translate(buttonPosition.x, buttonPosition.y, 0f)
-                            .scale(38f * 8, 11f * 8, 1f)
-                            .get(FloatArray(16))
-                    )
-                    this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
-                    this.uView.set(Matrix4f().get(FloatArray(16)))
-                    if (isHoveringButton) {
-                        this.uTexture.set(GL_TEXTURE0, m.gameResources.startButtonHoverTexture)
-                    } else {
-                        this.uTexture.set(GL_TEXTURE0, m.gameResources.startButtonTexture)
+                withSpritePipeline(m.gameResources.spriteBatcher, m.gameResources.shader2d) {
+                    this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
+
+                    it.drawBatch(this) {
+                        drawQuad(
+                            halfWidth - ((52f * 16) / 2f),
+                            80f + (20f * sin((glfwGetTime()).toFloat())),
+                            52f * 16f,
+                            11f * 16f,
+                            0f,
+                            0f,
+                            1f,
+                            1f,
+                            m.gameResources.logoTexture
+                        )
+
+                        drawQuad(
+                            buttonPosition.x,
+                            buttonPosition.y,
+                            38f * 8,
+                            11f * 8,
+                            0f,
+                            0f,
+                            1f,
+                            1f,
+                            if (isHoveringButton) {
+                                m.gameResources.startButtonHoverTexture
+                            } else {
+                                m.gameResources.startButtonTexture
+                            }
+                        )
                     }
-
-                    m.gameResources.screenQuadMesh.render()
                 }
-
-                glEnable(GL_DEPTH_TEST)
 
                 val viewMatrix = Matrix4f()
                     .translate(0f, 0f, 0f)
 
-                glClear(GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+                withPipeline(Pipeline(m.gameResources.shader3d, enableDepthTest = true)) {
+                    this.shader.uIsObjectIdPass.set(false)
+                    this.shader.uUseNormalsAsColor.set(false)
 
-                m.gameResources.shader3d.bind {
-                    this.uIsObjectIdPass.set(false)
-                    this.uUseNormalsAsColor.set(false)
-
-                    this.uView.set(viewMatrix.get(FloatArray(16)))
-                    this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
-                    this.uModel.set(
+                    this.shader.uView.set(viewMatrix.get(FloatArray(16)))
+                    this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
+                    this.shader.uModel.set(
                         Matrix4f()
                             .translate(1200f, 1100f, 0f)
                             .scale(-400f, 400f, 1f)
@@ -122,8 +110,8 @@ sealed class Stage(val m: Gessyban) {
                             // .translate(0f, -2f, 0f)
                             .get(FloatArray(16))
                     )
-                    this.uTexture.set(GL_TEXTURE0, m.gameResources.gessyTexture)
-                    this.uObjectIdRGB.set(m.random.nextFloat(), m.random.nextFloat(), m.random.nextFloat())
+                    this.shader.uTexture.set(0, m.gameResources.gessyTexture)
+                    this.shader.uObjectIdRGB.set(m.random.nextFloat(), m.random.nextFloat(), m.random.nextFloat())
 
                     // Transformed matrices for the pose
                     val globalAnimatedTransformsMatrices = mutableMapOf<String, Matrix4f>()
@@ -181,26 +169,24 @@ sealed class Stage(val m: Gessyban) {
                             .get(boneTransformsMatrixArray, index * 16)
                     }
 
-                    this.uBoneMatrices.set(boneTransformsMatrixArray)
+                    this.shader.uBoneMatrices.set(boneTransformsMatrixArray)
 
                     m.gameResources.gessySkeleton.meshRenderingState.render()
                 }
             }
 
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
-            glViewport(0, 0, 1280, 720)
+            m.gpu.onRenderTarget(m.gpu.windowRenderTarget) {
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
-            glEnable(GL_DEPTH_TEST)
-            glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+                withPipeline(Pipeline(m.gameResources.shaderPixelFade, enableDepthTest = true)) {
+                    this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
+                    this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
+                    this.shader.uView.set(Matrix4f().get(FloatArray(16)))
+                    this.shader.uScreenTexture.set(0, m.gameResources.menuFramebuffer.texture)
+                    this.shader.uFadeAmount.set(fadeProgress)
 
-            m.gameResources.shaderPixelFade.bind {
-                this.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
-                this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
-                this.uView.set(Matrix4f().get(FloatArray(16)))
-                this.uScreenTexture.set(GL_TEXTURE0, m.gameResources.menuFramebuffer.textureId)
-                this.uFadeAmount.set(fadeProgress)
-
-                m.gameResources.screenQuadMesh.render()
+                    m.gameResources.screenQuadMesh.render()
+                }
             }
         }
 
@@ -253,7 +239,7 @@ sealed class Stage(val m: Gessyban) {
 
             val player = game.tiles.first { it is Tile.Player } as Tile.Player
 
-            fun renderScene(
+            fun RenderTargetScope.renderScene(
                 isObjectIdPass: Boolean,
                 isNormalPass: Boolean
             ) {
@@ -265,39 +251,30 @@ sealed class Stage(val m: Gessyban) {
                     .rotate(Math.toRadians(20.0).toFloat(), 0f, 1f, 0f)
                     .translate(-(player.x.toFloat() + 0.5f), 0f, -(player.z.toFloat() - 0.5f))
 
-                m.gameResources.shader3d.bind {
-                    if (isObjectIdPass) {
-                        this.uIsObjectIdPass.set(true)
-                    } else {
-                        this.uIsObjectIdPass.set(false)
-                    }
-
-                    if (isNormalPass) {
-                        this.uUseNormalsAsColor.set(true)
-                    } else {
-                        this.uUseNormalsAsColor.set(false)
-                    }
+                withPipeline(Pipeline(m.gameResources.shader3d, enableDepthTest = true)) {
+                    this.shader.uIsObjectIdPass.set(isObjectIdPass)
+                    this.shader.uUseNormalsAsColor.set(isNormalPass)
 
                     for (x in 0 until game.playfieldWidth) {
                         for (z in 0 until game.playfieldHeight) {
-                            this.uView.set(viewMatrix.get(FloatArray(16)))
-                            this.uProjection.set(projectionMatrix.get(FloatArray(16)))
-                            this.uModel.set(
+                            this.shader.uView.set(viewMatrix.get(FloatArray(16)))
+                            this.shader.uProjection.set(projectionMatrix.get(FloatArray(16)))
+                            this.shader.uModel.set(
                                 Matrix4f()
                                     .translate(1f * x, 0f, 1f * z)
                                     .translate(0.5f, 0.0f, -0.5f)
                                     .get(FloatArray(16))
                             )
 
-                            this.uTexture.set(GL_TEXTURE0, m.gameResources.floorTexture)
+                            this.shader.uTexture.set(0, m.gameResources.floorTexture)
 
                             val boneMatrices = FloatArray(19 * 16)
                             repeat(19) {
                                 Matrix4f().get(boneMatrices, it * 16)
                             }
 
-                            this.uBoneMatrices.set(boneMatrices)
-                            this.uObjectIdRGB.set(floorColor.x, floorColor.y, floorColor.z)
+                            this.shader.uBoneMatrices.set(boneMatrices)
+                            this.shader.uObjectIdRGB.set(floorColor.x, floorColor.y, floorColor.z)
 
                             m.gameResources.floorMesh.render()
                         }
@@ -305,50 +282,50 @@ sealed class Stage(val m: Gessyban) {
 
                     for (tile in game.tiles) {
                         if (tile is Tile.Wall) {
-                            this.uView.set(viewMatrix.get(FloatArray(16)))
-                            this.uProjection.set(projectionMatrix.get(FloatArray(16)))
-                            this.uModel.set(
+                            this.shader.uView.set(viewMatrix.get(FloatArray(16)))
+                            this.shader.uProjection.set(projectionMatrix.get(FloatArray(16)))
+                            this.shader.uModel.set(
                                 Matrix4f()
                                     .translate(1f * tile.x, 0f, 1f * tile.z)
                                     .translate(0.5f, 0.0f, -0.5f)
                                     .get(FloatArray(16))
                             )
-                            this.uTexture.set(GL_TEXTURE0, m.gameResources.wallTexture)
-                            this.uObjectIdRGB.set(wallColor.x, wallColor.y, wallColor.z)
+                            this.shader.uTexture.set(0, m.gameResources.wallTexture)
+                            this.shader.uObjectIdRGB.set(wallColor.x, wallColor.y, wallColor.z)
 
                             val boneMatrices = FloatArray(19 * 16)
                             repeat(19) {
                                 Matrix4f().get(boneMatrices, it * 16)
                             }
 
-                            this.uBoneMatrices.set(boneMatrices)
+                            this.shader.uBoneMatrices.set(boneMatrices)
 
                             m.gameResources.wallMesh.render()
                         } else if (tile is Tile.Box) {
-                            this.uView.set(viewMatrix.get(FloatArray(16)))
-                            this.uProjection.set(projectionMatrix.get(FloatArray(16)))
-                            this.uModel.set(
+                            this.shader.uView.set(viewMatrix.get(FloatArray(16)))
+                            this.shader.uProjection.set(projectionMatrix.get(FloatArray(16)))
+                            this.shader.uModel.set(
                                 Matrix4f()
                                     .translate(1f * tile.x, 0f, 1f * tile.z)
                                     .translate(0.5f, 0.0f, -0.5f)
                                     .get(FloatArray(16))
                             )
-                            this.uTexture.set(GL_TEXTURE0, m.gameResources.boxTexture)
-                            this.uObjectIdRGB.set(m.random.nextFloat(), m.random.nextFloat(), m.random.nextFloat())
+                            this.shader.uTexture.set(0, m.gameResources.boxTexture)
+                            this.shader.uObjectIdRGB.set(m.random.nextFloat(), m.random.nextFloat(), m.random.nextFloat())
 
                             val boneMatrices = FloatArray(19 * 16)
                             repeat(19) {
                                 Matrix4f().get(boneMatrices, it * 16)
                             }
 
-                            this.uBoneMatrices.set(boneMatrices)
+                            this.shader.uBoneMatrices.set(boneMatrices)
 
                             // heh, it uses the same mesh xd
                             m.gameResources.wallMesh.render()
                         } else if (tile is Tile.Player) {
-                            this.uView.set(viewMatrix.get(FloatArray(16)))
-                            this.uProjection.set(projectionMatrix.get(FloatArray(16)))
-                            this.uModel.set(
+                            this.shader.uView.set(viewMatrix.get(FloatArray(16)))
+                            this.shader.uProjection.set(projectionMatrix.get(FloatArray(16)))
+                            this.shader.uModel.set(
                                 Matrix4f()
                                     .translate(1f * tile.x, 0f, 1f * tile.z)
                                     .translate(0.5f, 0.0f, -0.5f)
@@ -362,8 +339,8 @@ sealed class Stage(val m: Gessyban) {
                                     }
                                     .get(FloatArray(16))
                             )
-                            this.uTexture.set(GL_TEXTURE0, m.gameResources.gessyTexture)
-                            this.uObjectIdRGB.set(m.random.nextFloat(), m.random.nextFloat(), m.random.nextFloat())
+                            this.shader.uTexture.set(0, m.gameResources.gessyTexture)
+                            this.shader.uObjectIdRGB.set(m.random.nextFloat(), m.random.nextFloat(), m.random.nextFloat())
 
                             // Transformed matrices for the pose
                             val globalAnimatedTransformsMatrices = mutableMapOf<String, Matrix4f>()
@@ -424,13 +401,13 @@ sealed class Stage(val m: Gessyban) {
                                     .get(boneTransformsMatrixArray, index * 16)
                             }
 
-                            this.uBoneMatrices.set(boneTransformsMatrixArray)
+                            this.shader.uBoneMatrices.set(boneTransformsMatrixArray)
 
                             m.gameResources.gessySkeleton.meshRenderingState.render()
                         } else {
-                            this.uView.set(viewMatrix.get(FloatArray(16)))
-                            this.uProjection.set(projectionMatrix.get(FloatArray(16)))
-                            this.uModel.set(
+                            this.shader.uView.set(viewMatrix.get(FloatArray(16)))
+                            this.shader.uProjection.set(projectionMatrix.get(FloatArray(16)))
+                            this.shader.uModel.set(
                                 Matrix4f()
                                     .translate(1f * tile.x, 0.0001f, 1f * tile.z)
                                     .scale(1f, 1f, 1f)
@@ -440,19 +417,19 @@ sealed class Stage(val m: Gessyban) {
 
                             when (tile) {
                                 is Tile.Box -> {
-                                    this.uTexture.set(GL_TEXTURE0, m.gameResources.boxTexture)
+                                    this.shader.uTexture.set(0, m.gameResources.boxTexture)
                                 }
 
                                 is Tile.Player -> {
-                                    this.uTexture.set(GL_TEXTURE0, m.gameResources.furalhaTexture)
+                                    this.shader.uTexture.set(0, m.gameResources.furalhaTexture)
                                 }
 
                                 is Tile.PressurePlate -> {
-                                    this.uTexture.set(GL_TEXTURE0, m.gameResources.pressurePlateTexture)
+                                    this.shader.uTexture.set(0, m.gameResources.pressurePlateTexture)
                                 }
 
                                 is Tile.Wall -> {
-                                    this.uTexture.set(GL_TEXTURE0, m.gameResources.wallTexture)
+                                    this.shader.uTexture.set(0, m.gameResources.wallTexture)
                                 }
                             }
 
@@ -461,8 +438,8 @@ sealed class Stage(val m: Gessyban) {
                                 Matrix4f().get(boneMatrices, it * 16)
                             }
 
-                            this.uBoneMatrices.set(boneMatrices)
-                            this.uObjectIdRGB.set(floorColor.x, floorColor.y, floorColor.z)
+                            this.shader.uBoneMatrices.set(boneMatrices)
+                            this.shader.uObjectIdRGB.set(floorColor.x, floorColor.y, floorColor.z)
 
                             m.gameResources.screenQuadMesh.render()
                         }
@@ -470,55 +447,71 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.gameResources.gameFramebuffer.bind {
-                glEnable(GL_DEPTH_TEST)
-                glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+            m.gpu.onRenderTarget(m.gameResources.gameFramebuffer) {
+                m.gl.enable(GL_DEPTH_TEST)
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 renderScene(false, false)
             }
 
-            m.gameResources.objectIdFramebuffer.bind {
-                glEnable(GL_DEPTH_TEST)
-                glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+            m.gpu.onRenderTarget(m.gameResources.objectIdFramebuffer) {
+                m.gl.enable(GL_DEPTH_TEST)
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 renderScene(true, false)
             }
 
-            m.gameResources.normalsFramebuffer.bind {
-                glEnable(GL_DEPTH_TEST)
-                glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+            m.gpu.onRenderTarget(m.gameResources.normalsFramebuffer) {
+                m.gl.enable(GL_DEPTH_TEST)
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 renderScene(false, true)
             }
 
-            m.gameResources.pixelFilterFramebuffer.bind {
-                glEnable(GL_DEPTH_TEST)
-                glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+            m.gpu.onRenderTarget(m.gameResources.pixelFilterFramebuffer) {
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
-                m.gameResources.shaderPixelFilter.bind {
-                    this.uModel.set(Matrix4f().scale(320f, 180f, 1f).get(FloatArray(16)))
-                    this.uProjection.set(m.gameResources.pixelProjectionMatrix.get(FloatArray(16)))
-                    this.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.uScreenTexture.set(GL_TEXTURE0, m.gameResources.gameFramebuffer.textureId)
-                    this.uDepthTexture.set(GL_TEXTURE1, m.gameResources.gameFramebuffer.depthTextureId)
-                    this.uUniqueObjectIdTexture.set(GL_TEXTURE2, m.gameResources.objectIdFramebuffer.textureId)
-                    this.uNormalsTexture.set(GL_TEXTURE3, m.gameResources.normalsFramebuffer.textureId)
+                withPipeline(Pipeline(m.gameResources.shaderPixelFilter, enableDepthTest = true)) {
+                    this.shader.uModel.set(Matrix4f().scale(320f, 180f, 1f).get(FloatArray(16)))
+                    this.shader.uProjection.set(m.gameResources.pixelProjectionMatrix.get(FloatArray(16)))
+                    this.shader.uView.set(Matrix4f().get(FloatArray(16)))
+                    this.shader.uScreenTexture.set(10, m.gameResources.gameFramebuffer.texture)
+                    this.shader.uDepthTexture.set(1, m.gameResources.gameFramebuffer.depthTexture!!)
+                    this.shader.uUniqueObjectIdTexture.set(2, m.gameResources.objectIdFramebuffer.texture)
+                    this.shader.uNormalsTexture.set(3, m.gameResources.normalsFramebuffer.texture)
 
                     m.gameResources.screenQuadMesh.render()
                 }
             }
 
-            m.gameResources.guiFramebuffer.bind {
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
-                glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+            m.gpu.onRenderTarget(m.gameResources.guiFramebuffer) {
+                m.gl.clearColor(0.0f, 0.0f, 0.0f, 0.0f)
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
-                m.renderText(Vector2f(0f, 0f), 7f * 10f, "level ${game.currentLevel}")
-                m.renderText(Vector2f(0f, 7f * 10f), 7f * 10f, "x: ${player.x}")
-                m.renderText(Vector2f(0f, (7f * 10f) * 2), 7f * 10f, "z: ${player.z}")
+                withSpritePipeline(m.gameResources.spriteBatcher, m.gameResources.shader2d) {
+                    this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
+
+                    it.drawBatch(this) {
+                        m.renderText(this, Vector2f(0f, 0f), 7f * 10f, "level ${game.currentLevel}")
+                        m.renderText(this, Vector2f(0f, 7f * 10f), 7f * 10f, "x: ${player.x}")
+                        m.renderText(this, Vector2f(0f, (7f * 10f) * 2), 7f * 10f, "z: ${player.z}")
+                    }
+                }
             }
 
-            m.gameResources.upscaledFramebuffer.bind {
-                m.gameResources.shader2d.bind {
+            m.gpu.onRenderTarget(m.gameResources.upscaledFramebuffer) {
+                m.gl.disable(GL_DEPTH_TEST)
+                m.gl.clear(GL_COLOR_BUFFER_BIT)
+
+                withSpritePipeline(m.gameResources.spriteBatcher, m.gameResources.shader2d) {
+                    this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
+
+                    it.drawBatch(this) {
+                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.pixelFilterFramebuffer.texture, 1f, 1f, 1f, 1f)
+                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.guiFramebuffer.texture, 1f, 1f, 1f, 1f)
+                    }
+                }
+                /* m.gameResources.shader2d.bind {
                     glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
                     glEnable(GL_DEPTH_TEST)
                     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
@@ -526,7 +519,7 @@ sealed class Stage(val m: Gessyban) {
                     this.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
                     this.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.uTexture.set(GL_TEXTURE0, m.gameResources.pixelFilterFramebuffer.textureId)
+                    this.uTexture.set(0, m.gameResources.pixelFilterFramebuffer.textureId)
 
                     m.gameResources.screenQuadMesh.render()
 
@@ -535,26 +528,24 @@ sealed class Stage(val m: Gessyban) {
                     this.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
                     this.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.uTexture.set(GL_TEXTURE0, m.gameResources.guiFramebuffer.textureId)
+                    this.uTexture.set(0, m.gameResources.guiFramebuffer.texture.textureId)
+
+                    m.gameResources.screenQuadMesh.render()
+                } */
+            }
+
+            m.gpu.onRenderTarget(m.gpu.windowRenderTarget) {
+                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
+
+                withPipeline(Pipeline(m.gameResources.shaderPixelFade, enableDepthTest = true)) {
+                    this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
+                    this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
+                    this.shader.uView.set(Matrix4f().get(FloatArray(16)))
+                    this.shader.uScreenTexture.set(0, m.gameResources.upscaledFramebuffer.texture)
+                    this.shader.uFadeAmount.set((1.0f - ((glfwGetTime() - startedAt).toFloat() * 2.0f)).coerceAtLeast(0.0f))
 
                     m.gameResources.screenQuadMesh.render()
                 }
-            }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0)
-            glViewport(0, 0, 1280, 720)
-
-            glEnable(GL_DEPTH_TEST)
-            glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
-            m.gameResources.shaderPixelFade.bind {
-                this.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
-                this.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
-                this.uView.set(Matrix4f().get(FloatArray(16)))
-                this.uScreenTexture.set(GL_TEXTURE0, m.gameResources.upscaledFramebuffer.textureId)
-                this.uFadeAmount.set((1.0f - ((glfwGetTime() - startedAt).toFloat() * 2.0f)).coerceAtLeast(0.0f))
-
-                m.gameResources.screenQuadMesh.render()
             }
 
             /* shader2d.bind {
@@ -571,16 +562,16 @@ sealed class Stage(val m: Gessyban) {
 
                     when (tile) {
                         is Tile.Box -> {
-                            this.uTexture.set(GL_TEXTURE0, boxTexture)
+                            this.uTexture.set(0, boxTexture)
                         }
                         is Tile.Player -> {
-                            this.uTexture.set(GL_TEXTURE0, furalhaTexture)
+                            this.uTexture.set(0, furalhaTexture)
                         }
                         is Tile.PressurePlate -> {
-                            this.uTexture.set(GL_TEXTURE0, pressurePlateTexture)
+                            this.uTexture.set(0, pressurePlateTexture)
                         }
                         is Tile.Wall -> {
-                            this.uTexture.set(GL_TEXTURE0, wallTexture)
+                            this.uTexture.set(0, wallTexture)
                         }
                     }
 

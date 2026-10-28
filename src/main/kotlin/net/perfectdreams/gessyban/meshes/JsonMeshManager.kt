@@ -1,30 +1,22 @@
 package net.perfectdreams.gessyban.meshes
 
 import kotlinx.serialization.json.Json
+import net.perfectdreams.gessyban.FontCharacter
 import net.perfectdreams.gessyban.skeletons.NewBone
 import net.perfectdreams.gessyban.skeletons.Skeleton
-import net.perfectdreams.harmony.gl.meshes.MeshRenderingState
+import net.perfectdreams.harmony.gl.GLConstants.GL_ARRAY_BUFFER
+import net.perfectdreams.harmony.gl.GLConstants.GL_FLOAT
+import net.perfectdreams.harmony.gl.GLConstants.GL_INT
+import net.perfectdreams.harmony.gl.GLConstants.GL_STATIC_DRAW
+import net.perfectdreams.harmony.gl.GLContext
+import net.perfectdreams.harmony.gl.vertex.buildVertexAttributes
+import net.perfectdreams.oldharmony.gl.meshes.MeshRenderingState
 import org.joml.Matrix4f
-import org.lwjgl.opengl.GL11.GL_FLOAT
-import org.lwjgl.opengl.GL11.GL_INT
-import org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER
-import org.lwjgl.opengl.GL15.GL_STATIC_DRAW
-import org.lwjgl.opengl.GL15.glBindBuffer
-import org.lwjgl.opengl.GL15.glBufferData
-import org.lwjgl.opengl.GL15.glGenBuffers
-import org.lwjgl.opengl.GL20.glDisableVertexAttribArray
-import org.lwjgl.opengl.GL20.glEnableVertexAttribArray
-import org.lwjgl.opengl.GL20.glVertexAttribPointer
-import org.lwjgl.opengl.GL30
-import org.lwjgl.opengl.GL30.glBindVertexArray
-import org.lwjgl.opengl.GL30.glGenVertexArrays
-import org.lwjgl.opengl.GL30.glVertexAttribIPointer
-import org.lwjgl.opengl.GL32
 
 class JsonMeshManager {
     // This variation loads a mesh, but won't assign any bones for any of the vertices
     // Use a skeleton for animation!
-    fun createJsonMeshVAO(meshModel: JsonMesh): MeshRenderingState {
+    fun createJsonMeshVAO(gl: GLContext, meshModel: JsonMesh): MeshRenderingState {
         // Initial validation
         for (face in meshModel.faces) {
             meshModel.vertices.getOrNull(face.v0) ?: error("Missing vertex!")
@@ -96,13 +88,13 @@ class JsonMeshManager {
             val textureCoordinates2 = face.uv2
 
             textureCoordinates[arrayUVIdx++] = textureCoordinates0.x
-            textureCoordinates[arrayUVIdx++] = textureCoordinates0.y
+            textureCoordinates[arrayUVIdx++] = 1f - textureCoordinates0.y
 
             textureCoordinates[arrayUVIdx++] = textureCoordinates1.x
-            textureCoordinates[arrayUVIdx++] = textureCoordinates1.y
+            textureCoordinates[arrayUVIdx++] = 1f - textureCoordinates1.y
 
             textureCoordinates[arrayUVIdx++] = textureCoordinates2.x
-            textureCoordinates[arrayUVIdx++] = textureCoordinates2.y
+            textureCoordinates[arrayUVIdx++] = 1f - textureCoordinates2.y
 
             vertexBoneIds[arrayVertexBonesIdx++] = 0
             vertexBoneIds[arrayVertexBonesIdx++] = 0
@@ -114,51 +106,55 @@ class JsonMeshManager {
         }
 
         // Create and bind VAO
-        val quadVAO = GL32.glGenVertexArrays()
-        GL30.glBindVertexArray(quadVAO)
+        val quadVAO = gl.genVertexArrays()
+        gl.bindVertexArray(quadVAO)
 
         // Generate four VBOs
-        val vbosArray = IntArray(4)
-        glGenBuffers(vbosArray)
+        // val vbosArray = IntArray(4)
+        val vbo1 = gl.genBuffers()
+        val vbo2 = gl.genBuffers()
+        val vbo3 = gl.genBuffers()
+        val vbo4 = gl.genBuffers()
 
         // Position VBO
-        glEnableVertexAttribArray(0)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[0])
-        glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo1)
+        gl.bufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0)
 
         // Texture Coordinates VBO
-        glEnableVertexAttribArray(1)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[1])
-        glBufferData(GL_ARRAY_BUFFER, textureCoordinates, GL_STATIC_DRAW)
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(1)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo2)
+        gl.bufferData(GL_ARRAY_BUFFER, textureCoordinates, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
 
         // Vertex Bones VBO
-        glEnableVertexAttribArray(2)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[2])
-        glBufferData(GL_ARRAY_BUFFER, vertexBoneIds, GL_STATIC_DRAW)
+        gl.enableVertexAttribArray(2)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo3)
+        gl.bufferData(GL_ARRAY_BUFFER, vertexBoneIds, GL_STATIC_DRAW)
         // YES WE NEED TO USE glVertexAttribIPointer FOR GL_INT!!!
-        glVertexAttribIPointer(2, 1, GL_INT, 0, 0)
+        gl.vertexAttribIPointer(2, 1, GL_INT, 0, 0)
 
         // Normals VBO
-        glEnableVertexAttribArray(3)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[3])
-        glBufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW)
-        glVertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(3)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo4)
+        gl.bufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0)
 
         // Unbind
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        GL30.glBindVertexArray(0)
-        glDisableVertexAttribArray(3)
-        glDisableVertexAttribArray(2)
-        glDisableVertexAttribArray(1)
-        glDisableVertexAttribArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, 0)
+        gl.bindVertexArray(0)
+        // TODO:
+        // glDisableVertexAttribArray(3)
+        // glDisableVertexAttribArray(2)
+        // glDisableVertexAttribArray(1)
+        // glDisableVertexAttribArray(0)
 
-        return MeshRenderingState(quadVAO, meshModel.faces.size * 9)
+        return MeshRenderingState(gl, quadVAO, meshModel.faces.size * 9)
     }
 
     // This creates a mesh for the 2D shader
-    fun create2DQuad(): MeshRenderingState {
+    fun create2DQuad(gl: GLContext): MeshRenderingState {
         // We don't use JSON meshes for this because a 2D quad is so simple that we can hardcode it in here
         // Also because the 2D shader works differently from the 3D shader, so exporting a plane to be used in the 2D shader isn't straightforward
 
@@ -178,12 +174,12 @@ class JsonMeshManager {
             0.0f, 0.0f, 0.0f, 1.0f, // top left
         )
 
-        val screenQuadVao = glGenVertexArrays()
-        val vbo = glGenBuffers()
+        val screenQuadVao = gl.genVertexArrays()
+        val vbo = gl.genBuffers()
 
-        glBindVertexArray(screenQuadVao)
-        glBindBuffer(GL_ARRAY_BUFFER, vbo)
-        glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
+        gl.bindVertexArray(screenQuadVao)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo)
+        gl.bufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
 
         // Index: The index of the vertex attribute
         // Size: The size of each entry
@@ -199,23 +195,17 @@ class JsonMeshManager {
         // stride = 4 * Float.SIZE_BYTES (because each entry is [entry], *8 bytes for the pos*, [entry] ...), the stride is relative to the START of the vertex!
         // pointer = the data starts at 2 * Float.SIZE_BYTES
 
-        // Position attribute
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 0)
-        glEnableVertexAttribArray(0)
+        val attributes = buildVertexAttributes {
+            vec2(0) // Position attribute
+            vec2(1) // UV attribute
+        }
+        attributes.apply(gl)
 
-        // UV attribute
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 2 * Float.SIZE_BYTES.toLong())
-        glEnableVertexAttribArray(1)
-
-        // Unbind the VBO and VAO to prevent accidental modification
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
-
-        return MeshRenderingState(screenQuadVao, 6)
+        return MeshRenderingState(gl, screenQuadVao, 6)
     }
 
     // This creates a mesh for the 2D shader
-    fun createMesh2D(meshModel: JsonMesh): MeshRenderingState {
+    fun createMesh2D(gl: GLContext, meshModel: JsonMesh): MeshRenderingState {
         val quadData = FloatArray(
             // Each face has 3 vertices, each vertex has 3 coordinates (x, y, z)
             // Each face has 3 vertices, each vertex has 2 UV coordinates
@@ -253,35 +243,36 @@ class JsonMeshManager {
         }
 
         // Create and bind VAO
-        val quadVAO = GL32.glGenVertexArrays()
-        GL30.glBindVertexArray(quadVAO)
+        val quadVAO = gl.genVertexArrays()
+        gl.bindVertexArray(quadVAO)
 
         // Generate one VBO
-        val vbosArray = IntArray(1)
-        glGenBuffers(vbosArray)
+        val vbosArray = gl.genBuffers()
 
         // Position VBO
-        glEnableVertexAttribArray(0)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[0])
-        glBufferData(GL_ARRAY_BUFFER, quadData, GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 0)
+        gl.enableVertexAttribArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbosArray)
+        gl.bufferData(GL_ARRAY_BUFFER, quadData, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 0)
 
         // Texture Coordinates VBO
-        glEnableVertexAttribArray(1)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[0])
-        glBufferData(GL_ARRAY_BUFFER, quadData, GL_STATIC_DRAW)
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 2L * Float.SIZE_BYTES)
+        gl.enableVertexAttribArray(1)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbosArray)
+        gl.bufferData(GL_ARRAY_BUFFER, quadData, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 2L * Float.SIZE_BYTES)
 
         // Unbind
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        GL30.glBindVertexArray(0)
-        glDisableVertexAttribArray(1)
-        glDisableVertexAttribArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, 0)
+        gl.bindVertexArray(0)
+        // TODO:
+        // glDisableVertexAttribArray(1)
+        // glDisableVertexAttribArray(0)
 
-        return MeshRenderingState(quadVAO, meshModel.faces.size * 3)
+        return MeshRenderingState(gl, quadVAO, meshModel.faces.size * 3)
     }
 
     fun createJsonMeshSkeleton(
+        gl: GLContext,
         meshModel: JsonMesh,
         content: String
     ): Skeleton {
@@ -374,13 +365,13 @@ class JsonMeshManager {
             val textureCoordinates2 = face.uv2
 
             textureCoordinates[arrayUVIdx++] = textureCoordinates0.x
-            textureCoordinates[arrayUVIdx++] = textureCoordinates0.y
+            textureCoordinates[arrayUVIdx++] = 1f - textureCoordinates0.y
 
             textureCoordinates[arrayUVIdx++] = textureCoordinates1.x
-            textureCoordinates[arrayUVIdx++] = textureCoordinates1.y
+            textureCoordinates[arrayUVIdx++] = 1f - textureCoordinates1.y
 
             textureCoordinates[arrayUVIdx++] = textureCoordinates2.x
-            textureCoordinates[arrayUVIdx++] = textureCoordinates2.y
+            textureCoordinates[arrayUVIdx++] = 1f - textureCoordinates2.y
 
             vertexBoneIds[arrayVertexBonesIdx++] = skeletonGroupNamesToSkeletonGroupIds[vertex0.vertexGroups.first()] ?: error("Could not find group ${vertex0.vertexGroups.first()}")
             vertexBoneIds[arrayVertexBonesIdx++] = skeletonGroupNamesToSkeletonGroupIds[vertex1.vertexGroups.first()] ?: error("Could not find group ${vertex0.vertexGroups.first()}")
@@ -392,44 +383,47 @@ class JsonMeshManager {
         }
 
         // Create and bind VAO
-        val quadVAO = GL32.glGenVertexArrays()
-        GL30.glBindVertexArray(quadVAO)
+        val quadVAO = gl.genVertexArrays()
+        gl.bindVertexArray(quadVAO)
 
         // Generate four VBOs
-        val vbosArray = IntArray(4)
-        glGenBuffers(vbosArray)
+        val vbo1 = gl.genBuffers()
+        val vbo2 = gl.genBuffers()
+        val vbo3 = gl.genBuffers()
+        val vbo4 = gl.genBuffers()
 
         // Position VBO
-        glEnableVertexAttribArray(0)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[0])
-        glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo1)
+        gl.bufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0)
 
         // Texture Coordinates VBO
-        glEnableVertexAttribArray(1)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[1])
-        glBufferData(GL_ARRAY_BUFFER, textureCoordinates, GL_STATIC_DRAW)
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(1)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo2)
+        gl.bufferData(GL_ARRAY_BUFFER, textureCoordinates, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0)
 
         // Vertex Bones VBO
-        glEnableVertexAttribArray(2)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[2])
-        glBufferData(GL_ARRAY_BUFFER, vertexBoneIds, GL_STATIC_DRAW)
+        gl.enableVertexAttribArray(2)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo3)
+        gl.bufferData(GL_ARRAY_BUFFER, vertexBoneIds, GL_STATIC_DRAW)
         // YES WE NEED TO USE glVertexAttribIPointer FOR GL_INT!!!
-        glVertexAttribIPointer(2, 1, GL_INT, 0, 0)
+        gl.vertexAttribIPointer(2, 1, GL_INT, 0, 0)
 
         // Normals VBO
-        glEnableVertexAttribArray(3)
-        glBindBuffer(GL_ARRAY_BUFFER, vbosArray[3])
-        glBufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW)
-        glVertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0)
+        gl.enableVertexAttribArray(3)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo4)
+        gl.bufferData(GL_ARRAY_BUFFER, normals, GL_STATIC_DRAW)
+        gl.vertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0)
 
         // Unbind
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        GL30.glBindVertexArray(0)
-        glDisableVertexAttribArray(2)
-        glDisableVertexAttribArray(1)
-        glDisableVertexAttribArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, 0)
+        gl.bindVertexArray(0)
+        // TODO:
+        // glDisableVertexAttribArray(2)
+        // glDisableVertexAttribArray(1)
+        // glDisableVertexAttribArray(0)
 
         // Skeleton tidbits
         val globalBindTransformsMatrices = mutableMapOf<String, Matrix4f>()
@@ -474,17 +468,17 @@ class JsonMeshManager {
 
         return Skeleton(
             skeleton,
-            MeshRenderingState(quadVAO, meshModel.faces.size * 9),
+            MeshRenderingState(gl, quadVAO, meshModel.faces.size * 9),
             skeletonGroupNamesToSkeletonGroupIds,
             globalBindTransformsMatrices,
             inverseBindPoseMatrices
         )
     }
 
-    fun createFontAtlas(): MutableMap<Char, MeshRenderingState> {
+    fun createFontAtlas(): MutableMap<Char, FontCharacter> {
         // positions: vec2, uv: vec2
         val input = "abcdefghijklmnopqrstuvwxyz0123456789:"
-        val characters = mutableMapOf<Char, MeshRenderingState>()
+        val characters = mutableMapOf<Char, FontCharacter>()
 
         for ((index, char) in input.withIndex()) {
             val widthRelativeToSize = (7 / 512f)
@@ -493,40 +487,7 @@ class JsonMeshManager {
             val uvTopLeft = index * widthRelativeToSize
             val uvTopRight = (index + 1) * widthRelativeToSize
 
-            val quadVertices = floatArrayOf(
-                // The descriptions are as a full quad
-                // If we do a triangle from 0f to 1f, everything will be positioned around the quad's top left corner
-                // First triangle
-                0.0f, 0.0f, uvTopLeft, 1.0f, // top left
-                1.0f, 0.0f, uvTopRight, 1.0f, // top right
-                1.0f, 1.0f, uvTopRight, 0.0f, // bottom right
-
-                // Second triangle
-                1.0f, 1.0f, uvTopRight, 0.0f, // bottom right
-                0.0f, 1.0f, uvTopLeft, 0.0f, // bottom left
-                0.0f, 0.0f, uvTopLeft, 1.0f, // top left
-            )
-
-            val screenQuadVao = glGenVertexArrays()
-            val vbo = glGenBuffers()
-
-            glBindVertexArray(screenQuadVao)
-            glBindBuffer(GL_ARRAY_BUFFER, vbo)
-            glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
-
-            // Position attribute
-            glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 0)
-            glEnableVertexAttribArray(0)
-
-            // UV attribute
-            glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 2 * Float.SIZE_BYTES.toLong())
-            glEnableVertexAttribArray(1)
-
-            // Unbind the VBO and VAO to prevent accidental modification
-            glBindBuffer(GL_ARRAY_BUFFER, 0)
-            glBindVertexArray(0)
-
-            characters[char] = MeshRenderingState(screenQuadVao, 6)
+            characters[char] = FontCharacter(uvTopLeft, uvTopRight)
         }
 
         return characters

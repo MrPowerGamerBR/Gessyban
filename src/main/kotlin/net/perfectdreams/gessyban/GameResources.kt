@@ -7,6 +7,8 @@ import net.perfectdreams.gessyban.shaders.Default3DShader
 import net.perfectdreams.gessyban.shaders.PixelFadeShader
 import net.perfectdreams.gessyban.shaders.PixelFilterShader
 import net.perfectdreams.gessyban.skeletons.AnimationBone
+import net.perfectdreams.harmony.gl.GLConstants.GL_CLAMP_TO_EDGE
+import net.perfectdreams.harmony.graphics.batcher.SpriteBatcher
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL11.GL_LINEAR
 import org.lwjgl.opengl.GL11.GL_NEAREST
@@ -14,32 +16,34 @@ import java.io.File
 import kotlin.collections.Map
 
 class GameResources(val m: Gessyban) {
+    val shader2d = m.gpu.createShader(
+        File("assets/shaders/game_2d.vsh").readText(),
+        File("assets/shaders/game_2d.fsh").readText(),
+        ::Default2DShader
+    )
+
+    val spriteBatcher = SpriteBatcher(m.gl)
+
     val screenProjectionMatrix = Matrix4f()
         .ortho(0.0f, 1280f, 720f, 0.0f, -1.0f, 1.0f)
 
     val pixelProjectionMatrix = Matrix4f()
         .ortho(0.0f, 320f, 180f, 0.0f, -1.0f, 1.0f)
 
-    val shader2d = m.shaderManager.loadShader(
-        File("assets/shaders/game_2d.vsh").readText(),
-        File("assets/shaders/game_2d.fsh").readText(),
-        ::Default2DShader
-    )
-
-    val shader3d = m.shaderManager.loadShader(
+    val shader3d = m.gpu.createShader(
         File("assets/shaders/game_3d.vsh").readText(),
         File("assets/shaders/game_3d.fsh").readText(),
         ::Default3DShader
     )
 
-    val shaderPixelFilter = m.shaderManager.loadShader(
-        File("assets/shaders/game_2d.vsh").readText(),
+    val shaderPixelFilter =  m.gpu.createShader(
+        File("assets/shaders/pixel_fade.vsh").readText(),
         File("assets/shaders/pixel_filter.fsh").readText(),
         ::PixelFilterShader
     )
 
-    val shaderPixelFade = m.shaderManager.loadShader(
-        File("assets/shaders/game_2d.vsh").readText(),
+    val shaderPixelFade = m.gpu.createShader(
+        File("assets/shaders/pixel_fade.vsh").readText(),
         File("assets/shaders/pixel_fade.fsh").readText(),
         ::PixelFadeShader
     )
@@ -55,11 +59,12 @@ class GameResources(val m: Gessyban) {
     val startButtonHoverTexture = m.textureManager.loadTexture("assets/textures/start_button_hover.png", GL_NEAREST)
     val fontTexture = m.textureManager.loadTexture("assets/textures/font.png", GL_NEAREST)
 
-    val wallMesh = m.meshManager.createJsonMeshVAO(JsonMeshLoader.load(File("assets/meshes/wall.json").readText()))
-    val floorMesh = m.meshManager.createJsonMeshVAO(JsonMeshLoader.load(File("assets/meshes/floor.json").readText()))
+    val wallMesh = m.meshManager.createJsonMeshVAO(m.gl, JsonMeshLoader.load(File("assets/meshes/wall.json").readText()))
+    val floorMesh = m.meshManager.createJsonMeshVAO(m.gl, JsonMeshLoader.load(File("assets/meshes/floor.json").readText()))
     // val gessyMesh = meshManager.createJsonMeshVAO(JsonMeshLoader.load(File("assets/meshes/gessy.json").readText()))
 
     val gessySkeleton = m.meshManager.createJsonMeshSkeleton(
+        m.gl,
         JsonMeshLoader.load(File("assets/meshes/gessy.json").readText()),
         File("assets/armatures/gessy_skeleton.json").readText()
     )
@@ -68,17 +73,17 @@ class GameResources(val m: Gessyban) {
     val gessyWalkPose = Json.decodeFromString<Map<String, AnimationBone>>(File("assets/poses/walk.json").readText())
     val gessyHiPose = Json.decodeFromString<Map<String, AnimationBone>>(File("assets/poses/hi.json").readText())
 
-    val screenQuadMesh = m.meshManager.createMesh2D(JsonMeshLoader.load(File("assets/meshes/plane_2d.json").readText()))
+    val screenQuadMesh = m.meshManager.createMesh2D( m.gl, JsonMeshLoader.load(File("assets/meshes/plane_2d.json").readText()))
     // val screenQuadMesh = m.setupScreenQuad()
     val fontCharactersMeshes = m.meshManager.createFontAtlas()
 
     val aspectRatio = 1280f / 720f
 
-    val menuFramebuffer = m.framebufferManager.createFramebuffer(1280, 720)
-    val guiFramebuffer = m.framebufferManager.createFramebuffer(1280, 720)
-    val gameFramebuffer = m.framebufferManager.createFramebuffer(320, 180)
-    val objectIdFramebuffer = m.framebufferManager.createFramebuffer(320, 180)
-    val normalsFramebuffer = m.framebufferManager.createFramebuffer(320, 180)
-    val pixelFilterFramebuffer = m.framebufferManager.createFramebuffer(320, 180)
-    val upscaledFramebuffer = m.framebufferManager.createFramebuffer(1280, 720)
+    val menuFramebuffer = m.gpu.createFramebuffer(1280, 720, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val guiFramebuffer = m.gpu.createFramebuffer(1280, 720, false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val gameFramebuffer = m.gpu.createFramebuffer(320, 180, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val objectIdFramebuffer = m.gpu.createFramebuffer(320, 180, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val normalsFramebuffer = m.gpu.createFramebuffer(320, 180, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val pixelFilterFramebuffer = m.gpu.createFramebuffer(320, 180, false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val upscaledFramebuffer = m.gpu.createFramebuffer(1280, 720, false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
 }

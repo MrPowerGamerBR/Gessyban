@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.1.20"
-    kotlin("plugin.serialization") version "2.1.20"
+    kotlin("jvm") version "2.4.21"
+    kotlin("plugin.serialization") version "2.4.21"
     application
 }
 
@@ -12,9 +12,11 @@ repositories {
 }
 
 val lwjglVersion = "3.3.6"
-val lwjglNatives = "natives-windows"
+val lwjglNatives = "natives-linux"
 
 dependencies {
+    implementation("net.perfectdreams.harmony:harmony-opengl-lwjgl:0.0.1-SNAPSHOT")
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.8.1")
 
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))

@@ -1,56 +1,39 @@
 package net.perfectdreams.gessyban
 
-import kotlinx.serialization.json.Json
-import net.perfectdreams.gessyban.meshes.JsonMeshLoader
 import net.perfectdreams.gessyban.meshes.JsonMeshManager
-import net.perfectdreams.gessyban.shaders.Default2DShader
-import net.perfectdreams.gessyban.shaders.Default3DShader
-import net.perfectdreams.gessyban.shaders.PixelFilterShader
-import net.perfectdreams.gessyban.skeletons.AnimationBone
 import net.perfectdreams.gessyban.skeletons.SkeletonManager
-import net.perfectdreams.harmony.gl.meshes.MeshRenderingState
-import net.perfectdreams.harmony.gl.shaders.ShaderManager
-import net.perfectdreams.harmony.gl.shaders.bind
-import net.perfectdreams.harmony.gl.textures.TextureManager
-import net.perfectdreams.lorituber.framebuffers.FramebufferManager
-import org.joml.Matrix4f
+import net.perfectdreams.harmony.gl.GLConstants.GL_ARRAY_BUFFER
+import net.perfectdreams.harmony.gl.GLConstants.GL_STATIC_DRAW
+import net.perfectdreams.harmony.gl.GLContext
+import net.perfectdreams.harmony.gl.GPUResources
+import net.perfectdreams.oldharmony.gl.meshes.MeshRenderingState
+import net.perfectdreams.harmony.gl.opengl.OpenGLContext
+import net.perfectdreams.harmony.gl.opengl.OpenGLDebugging
+import net.perfectdreams.harmony.gl.vertex.buildVertexAttributes
+import net.perfectdreams.harmony.graphics.batcher.SpriteBatcher
+import net.perfectdreams.oldharmony.gl.textures.TextureManager
 import org.joml.Vector2f
-import org.joml.Vector3f
 import org.lwjgl.Version
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
-import org.lwjgl.glfw.GLFWCursorPosCallbackI
 import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.glfw.GLFWScrollCallbackI
 import org.lwjgl.glfw.GLFWVidMode
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL11.*
-import org.lwjgl.opengl.GL15.*
-import org.lwjgl.opengl.GL20.glEnableVertexAttribArray
-import org.lwjgl.opengl.GL20.glVertexAttribPointer
-import org.lwjgl.opengl.GL30.glBindVertexArray
-import org.lwjgl.opengl.GL30.glGenVertexArrays
-import org.lwjgl.opengl.GL43
-import org.lwjgl.stb.STBImage
-import org.lwjgl.stb.STBImage.stbi_set_flip_vertically_on_load
 import org.lwjgl.system.MemoryStack.stackPush
-import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.MemoryUtil.NULL
-import java.io.File
-import java.nio.DoubleBuffer
 import java.nio.IntBuffer
 import java.util.*
-import kotlin.collections.Map
 
 
 class Gessyban {
     // The window handle
     private var window: Long = 0
-    val shaderManager = ShaderManager()
-    val textureManager = TextureManager()
     val meshManager = JsonMeshManager()
     private val skeletonManager = SkeletonManager()
-    val framebufferManager = FramebufferManager()
+    lateinit var gl: GLContext
+    lateinit var gpu: GPUResources
+    lateinit var textureManager: TextureManager
 
     // Can only be loaded after creating GL Context
     lateinit var gameResources: GameResources
@@ -166,13 +149,6 @@ class Gessyban {
             )
         }
 
-        // Set the app icon
-        textureManager.setApplicationIcon(
-            window,
-            "assets/textures/gessy_trauma.png",
-            false
-        )
-
         // Make the OpenGL context current
         glfwMakeContextCurrent(window)
         // Enable v-sync
@@ -189,29 +165,24 @@ class Gessyban {
         // creates the GLCapabilities instance and makes the OpenGL
         // bindings available for use.
         GL.createCapabilities()
+        OpenGLDebugging.enableReportGLErrors()
+        val gl = OpenGLContext()
+        val gpu = GPUResources(gl, 1280, 720)
+        textureManager = TextureManager(gpu)
+        this.gl = gl
+        this.gpu = gpu
 
-        glEnable(GL43.GL_DEBUG_OUTPUT)
-        glEnable(GL43.GL_DEBUG_OUTPUT_SYNCHRONOUS)
-        GL43.glDebugMessageCallback({ source: Int, type: Int, id: Int, severity: Int, length: Int, messagePointer: Long, userParamPointer: Long ->
-            val debugMessage: String = MemoryUtil.memUTF8(messagePointer, length)
-
-            val sourceStr = when (source) {
-                GL43.GL_DEBUG_SOURCE_API -> "API"
-                else -> "Unknown ($source)"
-            }
-            println("[$sourceStr]: $debugMessage")
-
-            try {
-                error("OpenGL debug message callback")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }, NULL)
+        // Set the app icon
+        textureManager.setApplicationIcon(
+            window,
+            "assets/textures/gessy_trauma.png",
+            false
+        )
 
         gameResources = GameResources(this)
 
         // Set the clear color
-        glClearColor(23 / 255f, 35 / 255f, 35 / 255f, 1.0f)
+        gl.clearColor(23 / 255f, 35 / 255f, 35 / 255f, 1.0f)
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
@@ -244,12 +215,12 @@ class Gessyban {
             0.0f, 0.0f, 0.0f, 1.0f, // top left
         )
 
-        val screenQuadVao = glGenVertexArrays()
-        val vbo = glGenBuffers()
+        val screenQuadVao = gl.genVertexArrays()
+        val vbo = gl.genBuffers()
 
-        glBindVertexArray(screenQuadVao)
-        glBindBuffer(GL_ARRAY_BUFFER, vbo)
-        glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
+        gl.bindVertexArray(screenQuadVao)
+        gl.bindBuffer(GL_ARRAY_BUFFER, vbo)
+        gl.bufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
 
         // Index: The index of the vertex attribute
         // Size: The size of each entry
@@ -266,18 +237,13 @@ class Gessyban {
         // pointer = the data starts at 2 * Float.SIZE_BYTES
 
         // Position attribute
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 0)
-        glEnableVertexAttribArray(0)
+        val attributes = buildVertexAttributes {
+            vec2(0) // position
+            vec2(1) // uv
+        }
+        attributes.apply(gl)
 
-        // UV attribute
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.SIZE_BYTES, 2 * Float.SIZE_BYTES.toLong())
-        glEnableVertexAttribArray(1)
-
-        // Unbind the VBO and VAO to prevent accidental modification
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
-
-        return MeshRenderingState(screenQuadVao, 6)
+        return MeshRenderingState(gl, screenQuadVao, 6)
     }
 
     /**
@@ -293,31 +259,34 @@ class Gessyban {
     }
 
     fun renderText(
+        batcher: SpriteBatcher.SpriteBatcherScope,
         position: Vector2f,
         size: Float,
         input: String,
     ) {
         var x = 0f
 
-        gameResources.shader2d.bind {
-            this.uProjection.set(gameResources.screenProjectionMatrix.get(FloatArray(16)))
-            this.uView.set(Matrix4f().get(FloatArray(16)))
-            this.uTexture.set(GL_TEXTURE0, gameResources.fontTexture)
-
-            for (char in input) {
-                this.uModel.set(Matrix4f()
-                    .translate(x + position.x, position.y, 0f)
-                    .scale(size, size, 1f)
-                    .get(FloatArray(16))
+        for (char in input) {
+            val character = gameResources.fontCharactersMeshes[char]
+            if (character != null) {
+                batcher.drawQuad(
+                    position.x + x,
+                    position.y,
+                    size,
+                    size,
+                    character.uvTopLeft,
+                    0f,
+                    character.uvTopRight,
+                    1f,
+                    gameResources.fontTexture,
+                    1f,
+                    1f,
+                    1f,
+                    1f
                 )
-
-                val mesh = gameResources.fontCharactersMeshes[char]
-                if (mesh != null) {
-                    gameResources.fontCharactersMeshes[char]!!.render()
-                }
-
-                x += size
             }
+
+            x += size
         }
     }
 }
