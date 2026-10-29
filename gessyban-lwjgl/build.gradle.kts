@@ -11,7 +11,7 @@ val lwjglNatives = "natives-linux"
 
 dependencies {
     implementation(project(":gessyban-common"))
-    implementation("net.perfectdreams.harmony:harmony-opengl-lwjgl:0.0.1")
+    implementation(libs.harmony.openglLwjgl)
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 

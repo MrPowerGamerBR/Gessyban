@@ -15,8 +15,8 @@ kotlin {
         jsMain {
             dependencies {
                 implementation(project(":gessyban-common"))
-                implementation("net.perfectdreams.harmony:harmony-gl:0.0.1")
-                implementation("net.perfectdreams.harmony:harmony-webgl2:0.0.1")
+                implementation(libs.harmony.gl)
+                implementation(libs.harmony.webgl2)
 
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
                 // Required for WebGL2 Bindings
