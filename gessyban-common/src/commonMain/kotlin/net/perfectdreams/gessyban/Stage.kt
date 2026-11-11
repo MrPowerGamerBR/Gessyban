@@ -183,7 +183,7 @@ sealed class Stage(val m: Gessyban) {
                     this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
                     this.shader.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.shader.uScreenTexture.set(0, m.gameResources.menuFramebuffer.texture)
+                    this.shader.uScreenTexture.set(0, m.gameResources.menuFramebuffer.colorTexture!!)
                     this.shader.uFadeAmount.set(fadeProgress)
 
                     m.gameResources.screenQuadMesh.render()
@@ -476,10 +476,10 @@ sealed class Stage(val m: Gessyban) {
                     this.shader.uModel.set(Matrix4f().scale(320f, 180f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.pixelProjectionMatrix.get(FloatArray(16)))
                     this.shader.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.shader.uScreenTexture.set(10, m.gameResources.gameFramebuffer.texture)
+                    this.shader.uScreenTexture.set(10, m.gameResources.gameFramebuffer.colorTexture!!)
                     this.shader.uDepthTexture.set(1, m.gameResources.gameFramebuffer.depthTexture!!)
-                    this.shader.uUniqueObjectIdTexture.set(2, m.gameResources.objectIdFramebuffer.texture)
-                    this.shader.uNormalsTexture.set(3, m.gameResources.normalsFramebuffer.texture)
+                    this.shader.uUniqueObjectIdTexture.set(2, m.gameResources.objectIdFramebuffer.colorTexture!!)
+                    this.shader.uNormalsTexture.set(3, m.gameResources.normalsFramebuffer.colorTexture!!)
 
                     m.gameResources.screenQuadMesh.render()
                 }
@@ -508,8 +508,8 @@ sealed class Stage(val m: Gessyban) {
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
 
                     it.drawBatch(this) {
-                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.pixelFilterFramebuffer.texture, 1f, 1f, 1f, 1f)
-                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.guiFramebuffer.texture, 1f, 1f, 1f, 1f)
+                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.pixelFilterFramebuffer.colorTexture!!, 1f, 1f, 1f, 1f)
+                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.guiFramebuffer.colorTexture!!, 1f, 1f, 1f, 1f)
                     }
                 }
                 /* m.gameResources.shader2d.bind {
@@ -542,7 +542,7 @@ sealed class Stage(val m: Gessyban) {
                     this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
                     this.shader.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.shader.uScreenTexture.set(0, m.gameResources.upscaledFramebuffer.texture)
+                    this.shader.uScreenTexture.set(0, m.gameResources.upscaledFramebuffer.colorTexture!!)
                     this.shader.uFadeAmount.set((1.0f - ((m.getTime() - startedAt).toFloat() * 2.0f)).coerceAtLeast(0.0f))
 
                     m.gameResources.screenQuadMesh.render()

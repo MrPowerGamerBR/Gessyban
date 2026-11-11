@@ -8,6 +8,6 @@ class PixelFadeShader(gl: GLContext, programId: Int) : ShaderProgram(gl, program
     val uView = uniformMatrix4fv("uView")
     val uModel = uniformMatrix4fv("uModel")
 
-    val uScreenTexture = uniform1Sampler2D("uScreenTexture")
+    val uScreenTexture = uniformSampler2D("uScreenTexture")
     val uFadeAmount = uniform1f("uFadeAmount")
 }
