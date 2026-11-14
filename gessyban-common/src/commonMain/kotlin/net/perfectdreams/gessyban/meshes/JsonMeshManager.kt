@@ -142,8 +142,8 @@ class JsonMeshManager {
         gl.vertexAttribPointer(3, 3, GL_FLOAT, false, 0, 0)
 
         // Unbind
-        gl.bindBuffer(GL_ARRAY_BUFFER, 0)
-        gl.bindVertexArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, null)
+        gl.bindVertexArray(null)
         // TODO:
         // glDisableVertexAttribArray(3)
         // glDisableVertexAttribArray(2)
@@ -272,8 +272,8 @@ class JsonMeshManager {
         gl.vertexAttribIPointer(2, 1, GL_INT, 0, 0)
 
         // Unbind
-        gl.bindBuffer(GL_ARRAY_BUFFER, 0)
-        gl.bindVertexArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, null)
+        gl.bindVertexArray(null)
         // TODO:
         // glDisableVertexAttribArray(2)
         // glDisableVertexAttribArray(1)
@@ -432,8 +432,8 @@ class JsonMeshManager {
         }.apply(gl)
 
         // Unbind
-        gl.bindBuffer(GL_ARRAY_BUFFER, 0)
-        gl.bindVertexArray(0)
+        gl.bindBuffer(GL_ARRAY_BUFFER, null)
+        gl.bindVertexArray(null)
         // TODO:
         // glDisableVertexAttribArray(2)
         // glDisableVertexAttribArray(1)

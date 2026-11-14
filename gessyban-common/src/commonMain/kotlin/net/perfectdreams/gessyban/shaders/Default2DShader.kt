@@ -1,9 +1,10 @@
 package net.perfectdreams.gessyban.shaders
 
+import net.perfectdreams.harmony.gl.GLProgram
 import net.perfectdreams.harmony.gl.GLContext
 import net.perfectdreams.harmony.graphics.batcher.SpriteShader
 
-class Default2DShader(gl: GLContext, programId: Int) : SpriteShader(gl, programId) {
+class Default2DShader(gl: GLContext, programId: GLProgram) : SpriteShader(gl, programId) {
     val uProjection = uniformMatrix4fv("uProjection")
     override val uTexture = uniformSampler2D("uTexture")
 }

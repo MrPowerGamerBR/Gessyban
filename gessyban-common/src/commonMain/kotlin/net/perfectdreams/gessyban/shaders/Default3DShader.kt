@@ -1,9 +1,10 @@
 package net.perfectdreams.gessyban.shaders
 
+import net.perfectdreams.harmony.gl.GLProgram
 import net.perfectdreams.harmony.gl.GLContext
 import net.perfectdreams.harmony.gl.shaders.ShaderProgram
 
-class Default3DShader(gl: GLContext, programId: Int) : ShaderProgram(gl, programId) {
+class Default3DShader(gl: GLContext, programId: GLProgram) : ShaderProgram(gl, programId) {
     val uProjection = uniformMatrix4fv("uProjection")
     val uView = uniformMatrix4fv("uView")
     val uModel = uniformMatrix4fv("uModel")
