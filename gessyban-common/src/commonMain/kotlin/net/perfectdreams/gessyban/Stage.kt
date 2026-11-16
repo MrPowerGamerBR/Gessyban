@@ -11,12 +11,12 @@ import net.perfectdreams.harmony.gl.GLConstants.GL_DEPTH_BUFFER_BIT
 import net.perfectdreams.harmony.gl.GLConstants.GL_DEPTH_TEST
 import net.perfectdreams.harmony.gl.GLConstants.GL_ONE_MINUS_SRC_ALPHA
 import net.perfectdreams.harmony.gl.GLConstants.GL_SRC_ALPHA
-import net.perfectdreams.harmony.gl.framebuffers.withFramebuffer
-import net.perfectdreams.harmony.gl.pipelines.DepthState
-import net.perfectdreams.harmony.gl.pipelines.Pipeline
-import net.perfectdreams.harmony.gl.rendertarget.RenderTargetScope
-import net.perfectdreams.harmony.gl.shaders.withProgram
-import net.perfectdreams.harmony.graphics.batcher.withSpritePipeline
+import net.perfectdreams.harmony.render.framebuffers.withFramebuffer
+import net.perfectdreams.harmony.render.pipelines.DepthState
+import net.perfectdreams.harmony.render.pipelines.Pipeline
+import net.perfectdreams.harmony.render.rendertarget.RenderTargetScope
+import net.perfectdreams.harmony.render.shaders.withProgram
+import net.perfectdreams.harmony.render.batcher.withSpritePipeline
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.iterator
@@ -46,7 +46,7 @@ sealed class Stage(val m: Gessyban) {
                 m.stage = gameStage
             }
 
-            m.gpu.onRenderTarget(m.gameResources.menuFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.menuFramebuffer) {
                 m.gl.enable(GL_BLEND)
                 m.gl.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
@@ -176,14 +176,14 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.gpu.onRenderTarget(m.gpu.windowRenderTarget) {
+            m.device.onRenderTarget(m.windowRenderTarget) {
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 withPipeline(Pipeline(m.gameResources.shaderPixelFade, DepthState(write = true))) {
                     this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
                     this.shader.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.shader.uScreenTexture.set(0, m.gameResources.menuFramebuffer.colorTexture!!)
+                    this.shader.uScreenTexture.set(0, m.gameResources.menuFramebuffer.attachments.color0Texture)
                     this.shader.uFadeAmount.set(fadeProgress)
 
                     m.gameResources.screenQuadMesh.render()
@@ -377,7 +377,7 @@ sealed class Stage(val m: Gessyban) {
 
                                 val modelMatrix = Matrix4f(parentMatrix).mul(thisMatrix)
 
-                                val animBones = if (!tile.hasMovedAtLeastOnce)
+                                val animBones = if (!tile.hasMovedAtLeastOnce || tile.lastMoveWasInvalid)
                                     m.gameResources.gessyIdlePose[name]!!
                                 else
                                     m.gameResources.gessyWalkPose[name]!!
@@ -448,44 +448,44 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.gpu.onRenderTarget(m.gameResources.gameFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.gameFramebuffer) {
                 m.gl.enable(GL_DEPTH_TEST)
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 renderScene(false, false)
             }
 
-            m.gpu.onRenderTarget(m.gameResources.objectIdFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.objectIdFramebuffer) {
                 m.gl.enable(GL_DEPTH_TEST)
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 renderScene(true, false)
             }
 
-            m.gpu.onRenderTarget(m.gameResources.normalsFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.normalsFramebuffer) {
                 m.gl.enable(GL_DEPTH_TEST)
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 renderScene(false, true)
             }
 
-            m.gpu.onRenderTarget(m.gameResources.pixelFilterFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.pixelFilterFramebuffer) {
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 withPipeline(Pipeline(m.gameResources.shaderPixelFilter)) {
                     this.shader.uModel.set(Matrix4f().scale(320f, 180f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.pixelProjectionMatrix.get(FloatArray(16)))
                     this.shader.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.shader.uScreenTexture.set(10, m.gameResources.gameFramebuffer.colorTexture!!)
-                    this.shader.uDepthTexture.set(1, m.gameResources.gameFramebuffer.depthTexture!!)
-                    this.shader.uUniqueObjectIdTexture.set(2, m.gameResources.objectIdFramebuffer.colorTexture!!)
-                    this.shader.uNormalsTexture.set(3, m.gameResources.normalsFramebuffer.colorTexture!!)
+                    this.shader.uScreenTexture.set(10, m.gameResources.gameFramebuffer.attachments.color0Texture)
+                    this.shader.uDepthTexture.set(1, m.gameResources.gameFramebuffer.attachments.depthStencilTexture)
+                    this.shader.uUniqueObjectIdTexture.set(2, m.gameResources.objectIdFramebuffer.attachments.color0Texture)
+                    this.shader.uNormalsTexture.set(3, m.gameResources.normalsFramebuffer.attachments.color0Texture)
 
                     m.gameResources.screenQuadMesh.render()
                 }
             }
 
-            m.gpu.onRenderTarget(m.gameResources.guiFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.guiFramebuffer) {
                 m.gl.clearColor(0.0f, 0.0f, 0.0f, 0.0f)
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
@@ -500,7 +500,7 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.gpu.onRenderTarget(m.gameResources.upscaledFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.upscaledFramebuffer) {
                 m.gl.disable(GL_DEPTH_TEST)
                 m.gl.clear(GL_COLOR_BUFFER_BIT)
 
@@ -508,8 +508,8 @@ sealed class Stage(val m: Gessyban) {
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
 
                     it.drawBatch(this) {
-                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.pixelFilterFramebuffer.colorTexture!!, 1f, 1f, 1f, 1f)
-                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.guiFramebuffer.colorTexture!!, 1f, 1f, 1f, 1f)
+                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.pixelFilterFramebuffer.attachments.color0Texture, 1f, 1f, 1f, 1f)
+                        drawQuad(0f, 0f, 1280f, 720f, 0f, 1f, 1f, 0f, m.gameResources.guiFramebuffer.attachments.color0Texture, 1f, 1f, 1f, 1f)
                     }
                 }
                 /* m.gameResources.shader2d.bind {
@@ -535,14 +535,14 @@ sealed class Stage(val m: Gessyban) {
                 } */
             }
 
-            m.gpu.onRenderTarget(m.gpu.windowRenderTarget) {
+            m.device.onRenderTarget(m.windowRenderTarget) {
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 withPipeline(Pipeline(m.gameResources.shaderPixelFade, DepthState(write = true))) {
                     this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
                     this.shader.uView.set(Matrix4f().get(FloatArray(16)))
-                    this.shader.uScreenTexture.set(0, m.gameResources.upscaledFramebuffer.colorTexture!!)
+                    this.shader.uScreenTexture.set(0, m.gameResources.upscaledFramebuffer.attachments.color0Texture)
                     this.shader.uFadeAmount.set((1.0f - ((m.getTime() - startedAt).toFloat() * 2.0f)).coerceAtLeast(0.0f))
 
                     m.gameResources.screenQuadMesh.render()

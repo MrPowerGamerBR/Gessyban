@@ -10,7 +10,7 @@ import net.perfectdreams.harmony.gl.GLConstants.GL_FLOAT
 import net.perfectdreams.harmony.gl.GLConstants.GL_INT
 import net.perfectdreams.harmony.gl.GLConstants.GL_STATIC_DRAW
 import net.perfectdreams.harmony.gl.GLContext
-import net.perfectdreams.harmony.gl.vertex.buildVertexAttributes
+import net.perfectdreams.harmony.render.vertex.buildVertexAttributes
 import net.perfectdreams.oldharmony.gl.meshes.MeshRenderingState
 
 class JsonMeshManager {

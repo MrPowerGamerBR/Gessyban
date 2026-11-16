@@ -4,18 +4,20 @@ import com.mrpowergamerbr.starfait.Vector2f
 import net.perfectdreams.gessyban.meshes.JsonMeshManager
 import net.perfectdreams.gessyban.skeletons.SkeletonManager
 import net.perfectdreams.harmony.gl.GLContext
-import net.perfectdreams.harmony.gl.GPUResources
-import net.perfectdreams.harmony.graphics.batcher.SpriteBatcher
+import net.perfectdreams.harmony.render.RenderDevice
+import net.perfectdreams.harmony.render.batcher.SpriteBatcher
+import net.perfectdreams.harmony.render.rendertarget.WindowRenderTarget
 import kotlin.random.Random
 
 class Gessyban(
     val gl: GLContext,
-    val gpu: GPUResources,
+    val device: RenderDevice,
     val vfs: VirtualFileSystem,
     val gameResources: GameResources
 ) {
     private val skeletonManager = SkeletonManager()
     private val startedAt = currentTimeMillis()
+    val windowRenderTarget = WindowRenderTarget(1280, 720)
 
     val random = Random.Default
 

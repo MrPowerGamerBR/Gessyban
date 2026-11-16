@@ -17,7 +17,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.harmony.gl)
+                api(libs.harmony.gl)
+                api(libs.harmony.render)
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
             }
         }

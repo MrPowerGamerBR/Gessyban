@@ -8,8 +8,8 @@ import net.perfectdreams.gessyban.Stage
 import net.perfectdreams.gessyban.VirtualFileSystem
 import net.perfectdreams.gessyban.meshes.JsonMeshManager
 import net.perfectdreams.gessyban.webgl2.textures.WebTextureManager
-import net.perfectdreams.harmony.gl.GPUResources
 import net.perfectdreams.harmony.gl.webgl2.WebGL2Context
+import net.perfectdreams.harmony.render.RenderDevice
 import web.animations.requestAnimationFrame
 import web.dom.document
 import web.events.addHandler
@@ -77,12 +77,13 @@ class GessybanWebGL2(val vfs: VirtualFileSystem) {
         }
 
         val gl = WebGL2Context(webgl2)
-        val gpu = GPUResources(gl, webgl2.drawingBufferWidth, webgl2.drawingBufferHeight)
+        val gpu = RenderDevice(gl)
         val textureManager = WebTextureManager(gpu, vfs)
 
         GlobalScope.launch {
             val resources = GameResources.load(gpu, textureManager, JsonMeshManager(),  vfs)
             this@GessybanWebGL2.gessyban = Gessyban(gl, gpu, vfs, resources)
+            this@GessybanWebGL2.gessyban.windowRenderTarget.resize(webgl2.drawingBufferWidth, webgl2.drawingBufferHeight)
 
             // Set the clear color
             gl.clearColor(23 / 255f, 35 / 255f, 35 / 255f, 1.0f)

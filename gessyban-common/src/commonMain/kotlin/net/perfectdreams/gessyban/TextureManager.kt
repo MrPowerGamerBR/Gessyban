@@ -1,6 +1,6 @@
 package net.perfectdreams.gessyban
 
-import net.perfectdreams.harmony.gl.textures.Texture
+import net.perfectdreams.harmony.render.textures.Texture
 
 interface TextureManager {
     suspend fun loadTexture(

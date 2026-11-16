@@ -5,6 +5,7 @@ sealed class Tile {
     var z = 0
 
     class Player : Tile() {
+        var lastMoveWasInvalid = false
         var hasMovedAtLeastOnce = false
         var lastMove = LastMove.UP
 

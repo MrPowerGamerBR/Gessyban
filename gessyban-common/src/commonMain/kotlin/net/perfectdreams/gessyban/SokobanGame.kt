@@ -36,6 +36,8 @@ class SokobanGame(val m: Gessyban) {
         val playerTile = tiles.first { it is Tile.Player } as Tile.Player
 
         playerTile.hasMovedAtLeastOnce = true
+        playerTile.lastMoveWasInvalid = true
+
         if (x == 1) {
             playerTile.lastMove = Tile.Player.LastMove.RIGHT
         } else if (x == -1) {
@@ -91,6 +93,7 @@ class SokobanGame(val m: Gessyban) {
             }
         }
 
+        playerTile.lastMoveWasInvalid = false
         playerTile.x = newX
         playerTile.z = newZ
 

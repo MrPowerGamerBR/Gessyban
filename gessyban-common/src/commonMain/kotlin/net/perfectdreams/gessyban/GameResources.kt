@@ -10,16 +10,18 @@ import net.perfectdreams.gessyban.shaders.PixelFadeShader
 import net.perfectdreams.gessyban.shaders.PixelFilterShader
 import net.perfectdreams.gessyban.skeletons.AnimationBone
 import net.perfectdreams.gessyban.skeletons.Skeleton
+import net.perfectdreams.harmony.gl.GLConstants
 import net.perfectdreams.harmony.gl.GLConstants.GL_CLAMP_TO_EDGE
 import net.perfectdreams.harmony.gl.GLConstants.GL_NEAREST
-import net.perfectdreams.harmony.gl.GPUResources
-import net.perfectdreams.harmony.gl.textures.Texture
-import net.perfectdreams.harmony.graphics.batcher.SpriteBatcher
+import net.perfectdreams.harmony.render.RenderDevice
+import net.perfectdreams.harmony.render.textures.Texture
+import net.perfectdreams.harmony.render.batcher.SpriteBatcher
+import net.perfectdreams.harmony.render.textures.TextureFormat
 import net.perfectdreams.oldharmony.gl.meshes.MeshRenderingState
 import kotlin.collections.Map
 
 class GameResources(
-    val gpu: GPUResources,
+    val device: RenderDevice,
     val vfs: VirtualFileSystem,
     val shader2d: Default2DShader,
     val shader3d: Default3DShader,
@@ -46,31 +48,31 @@ class GameResources(
 ) {
     companion object {
         suspend fun load(
-            gpu: GPUResources,
+            render: RenderDevice,
             textureManager: TextureManager,
             meshManager: JsonMeshManager,
             vfs: VirtualFileSystem
         ): GameResources {
-            val gl = gpu.gl
+            val gl = render.gl
             return GameResources(
-                gpu,
+                render,
                 vfs,
-                gpu.createShader(
+                render.createShader(
                     vfs.files["shaders/game_2d.vsh"]!!.decodeToString(),
                     vfs.files["shaders/game_2d.fsh"]!!.decodeToString(),
                     ::Default2DShader
                 ),
-                gpu.createShader(
+                render.createShader(
                     vfs.files["shaders/game_3d.vsh"]!!.decodeToString(),
                     vfs.files["shaders/game_3d.fsh"]!!.decodeToString(),
                     ::Default3DShader
                 ),
-                gpu.createShader(
+                render.createShader(
                     vfs.files["shaders/pixel_fade.vsh"]!!.decodeToString(),
                     vfs.files["shaders/pixel_filter.fsh"]!!.decodeToString(),
                     ::PixelFilterShader
                 ),
-                gpu.createShader(
+                render.createShader(
                     vfs.files["shaders/pixel_fade.vsh"]!!.decodeToString(),
                     vfs.files["shaders/pixel_fade.fsh"]!!.decodeToString(),
                     ::PixelFadeShader
@@ -102,17 +104,17 @@ class GameResources(
         }
     }
 
-    val spriteBatcher = SpriteBatcher(gpu.gl)
+    val spriteBatcher = SpriteBatcher(device.gl)
     val screenProjectionMatrix = Matrix4f().ortho(0.0f, 1280f, 720f, 0.0f, -1.0f, 1.0f)
     val pixelProjectionMatrix = Matrix4f().ortho(0.0f, 320f, 180f, 0.0f, -1.0f, 1.0f)
 
     val aspectRatio = 1280f / 720f
 
-    val menuFramebuffer = gpu.createFramebuffer(1280, 720, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
-    val guiFramebuffer = gpu.createFramebuffer(1280, 720, false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
-    val gameFramebuffer = gpu.createFramebuffer(320, 180, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
-    val objectIdFramebuffer = gpu.createFramebuffer(320, 180, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
-    val normalsFramebuffer = gpu.createFramebuffer(320, 180, true, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
-    val pixelFilterFramebuffer = gpu.createFramebuffer(320, 180, false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
-    val upscaledFramebuffer = gpu.createFramebuffer(1280, 720, false, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val menuFramebuffer = device.createFramebuffer(1280, 720, TextureFormat.DEPTH24, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val guiFramebuffer = device.createFramebuffer(1280, 720, null, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val gameFramebuffer = device.createFramebuffer(320, 180, TextureFormat.DEPTH24, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val objectIdFramebuffer = device.createFramebuffer(320, 180, TextureFormat.DEPTH24, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val normalsFramebuffer = device.createFramebuffer(320, 180, TextureFormat.DEPTH24, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val pixelFilterFramebuffer = device.createFramebuffer(320, 180, null, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
+    val upscaledFramebuffer = device.createFramebuffer(1280, 720, null, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST)
 }

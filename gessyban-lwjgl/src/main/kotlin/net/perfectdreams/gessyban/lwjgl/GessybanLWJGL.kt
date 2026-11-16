@@ -7,9 +7,9 @@ import net.perfectdreams.gessyban.Stage
 import net.perfectdreams.gessyban.VirtualFileSystem
 import net.perfectdreams.gessyban.lwjgl.textures.LWJGLTextureManager
 import net.perfectdreams.gessyban.meshes.JsonMeshManager
-import net.perfectdreams.harmony.gl.GPUResources
 import net.perfectdreams.harmony.gl.opengl.OpenGLContext
 import net.perfectdreams.harmony.gl.opengl.OpenGLDebugging
+import net.perfectdreams.harmony.render.RenderDevice
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.GLFW_FALSE
 import org.lwjgl.glfw.GLFW.GLFW_KEY_A
@@ -164,7 +164,7 @@ class GessybanLWJGL {
         GL.createCapabilities()
         OpenGLDebugging.enableReportGLErrors()
         val gl = OpenGLContext()
-        val gpu = GPUResources(gl, 1280, 720)
+        val gpu = RenderDevice(gl)
         val vfs = loadVirtualFileSystem(File("assets"))
         val textureManager = LWJGLTextureManager(gpu, vfs)
 

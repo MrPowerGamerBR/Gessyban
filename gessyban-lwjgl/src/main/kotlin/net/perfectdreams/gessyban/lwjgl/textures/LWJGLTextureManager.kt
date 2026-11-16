@@ -3,13 +3,13 @@ package net.perfectdreams.gessyban.lwjgl.textures
 import net.perfectdreams.gessyban.TextureManager
 import net.perfectdreams.gessyban.VirtualFileSystem
 import net.perfectdreams.harmony.gl.GLConstants
-import net.perfectdreams.harmony.gl.GPUResources
-import net.perfectdreams.harmony.gl.textures.Texture
+import net.perfectdreams.harmony.render.RenderDevice
+import net.perfectdreams.harmony.render.textures.Texture
 import org.lwjgl.glfw.GLFW.glfwSetWindowIcon
 import org.lwjgl.glfw.GLFWImage
 import org.lwjgl.system.MemoryUtil
 
-class LWJGLTextureManager(val gpu: GPUResources, val vfs: VirtualFileSystem) : TextureManager {
+class LWJGLTextureManager(val device: RenderDevice, val vfs: VirtualFileSystem) : TextureManager {
     override suspend fun loadTexture(
         filePath: String,
         textureInterpolationType: Int
@@ -17,7 +17,7 @@ class LWJGLTextureManager(val gpu: GPUResources, val vfs: VirtualFileSystem) : T
         val data = vfs.files[filePath] ?: error("File $filePath does not exist!")
         val textureSource = STBImageDecoder.decode(data)
 
-        return gpu.createTexture(
+        return device.createTexture(
             textureSource,
             GLConstants.GL_CLAMP_TO_EDGE,
             GLConstants.GL_CLAMP_TO_EDGE,
