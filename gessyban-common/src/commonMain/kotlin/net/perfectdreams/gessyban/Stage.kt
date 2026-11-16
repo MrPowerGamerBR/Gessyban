@@ -1,25 +1,14 @@
 package net.perfectdreams.gessyban
 
-import com.mrpowergamerbr.starfait.MathUtils
-import com.mrpowergamerbr.starfait.Matrix4f
-import com.mrpowergamerbr.starfait.Quaternionf
-import com.mrpowergamerbr.starfait.Vector2f
-import com.mrpowergamerbr.starfait.Vector3f
-import net.perfectdreams.harmony.gl.GLConstants.GL_BLEND
+import com.mrpowergamerbr.starfait.*
 import net.perfectdreams.harmony.gl.GLConstants.GL_COLOR_BUFFER_BIT
 import net.perfectdreams.harmony.gl.GLConstants.GL_DEPTH_BUFFER_BIT
-import net.perfectdreams.harmony.gl.GLConstants.GL_DEPTH_TEST
-import net.perfectdreams.harmony.gl.GLConstants.GL_ONE_MINUS_SRC_ALPHA
-import net.perfectdreams.harmony.gl.GLConstants.GL_SRC_ALPHA
-import net.perfectdreams.harmony.render.framebuffers.withFramebuffer
+import net.perfectdreams.harmony.render.batcher.withSpritePipeline
+import net.perfectdreams.harmony.render.pipelines.BlendState
 import net.perfectdreams.harmony.render.pipelines.DepthState
 import net.perfectdreams.harmony.render.pipelines.Pipeline
+import net.perfectdreams.harmony.render.rendertarget.ClearOptions
 import net.perfectdreams.harmony.render.rendertarget.RenderTargetScope
-import net.perfectdreams.harmony.render.shaders.withProgram
-import net.perfectdreams.harmony.render.batcher.withSpritePipeline
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.iterator
 import kotlin.math.sin
 
 sealed class Stage(val m: Gessyban) {
@@ -46,11 +35,7 @@ sealed class Stage(val m: Gessyban) {
                 m.stage = gameStage
             }
 
-            m.device.onRenderTarget(m.gameResources.menuFramebuffer) {
-                m.gl.enable(GL_BLEND)
-                m.gl.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.gameResources.menuFramebuffer, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 val width = 1280f
                 val height = 720f
 
@@ -96,7 +81,7 @@ sealed class Stage(val m: Gessyban) {
                 val viewMatrix = Matrix4f()
                     .translate(0f, 0f, 0f)
 
-                withPipeline(Pipeline(m.gameResources.shader3d, DepthState(write = true))) {
+                withPipeline(Pipeline(m.gameResources.shader3d, depth = DepthState(write = true), blend = BlendState.AlphaBlending)) {
                     this.shader.uIsObjectIdPass.set(false)
                     this.shader.uUseNormalsAsColor.set(false)
 
@@ -176,9 +161,7 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.device.onRenderTarget(m.windowRenderTarget) {
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.windowRenderTarget, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 withPipeline(Pipeline(m.gameResources.shaderPixelFade, DepthState(write = true))) {
                     this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
@@ -252,7 +235,7 @@ sealed class Stage(val m: Gessyban) {
                     .rotate(MathUtils.toRadians(20.0).toFloat(), 0f, 1f, 0f)
                     .translate(-(player.x.toFloat() + 0.5f), 0f, -(player.z.toFloat() - 0.5f))
 
-                withPipeline(Pipeline(m.gameResources.shader3d, DepthState(write = true))) {
+                withPipeline(Pipeline(m.gameResources.shader3d, DepthState(write = true), blend = BlendState.AlphaBlending)) {
                     this.shader.uIsObjectIdPass.set(isObjectIdPass)
                     this.shader.uUseNormalsAsColor.set(isNormalPass)
 
@@ -448,28 +431,19 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.device.onRenderTarget(m.gameResources.gameFramebuffer) {
-                m.gl.enable(GL_DEPTH_TEST)
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.gameResources.gameFramebuffer, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 renderScene(false, false)
             }
 
-            m.device.onRenderTarget(m.gameResources.objectIdFramebuffer) {
-                m.gl.enable(GL_DEPTH_TEST)
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.gameResources.objectIdFramebuffer, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 renderScene(true, false)
             }
 
-            m.device.onRenderTarget(m.gameResources.normalsFramebuffer) {
-                m.gl.enable(GL_DEPTH_TEST)
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.gameResources.normalsFramebuffer, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 renderScene(false, true)
             }
 
-            m.device.onRenderTarget(m.gameResources.pixelFilterFramebuffer) {
+            m.device.onRenderTarget(m.gameResources.pixelFilterFramebuffer, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
 
                 withPipeline(Pipeline(m.gameResources.shaderPixelFilter)) {
@@ -485,10 +459,7 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.device.onRenderTarget(m.gameResources.guiFramebuffer) {
-                m.gl.clearColor(0.0f, 0.0f, 0.0f, 0.0f)
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.gameResources.guiFramebuffer, clear = ClearOptions(ClearOptions.Color(0.0f, 0.0f, 0.0f, 0.0f), depth = 1f)) {
                 withSpritePipeline(m.gameResources.spriteBatcher, m.gameResources.shader2d) {
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
 
@@ -500,10 +471,7 @@ sealed class Stage(val m: Gessyban) {
                 }
             }
 
-            m.device.onRenderTarget(m.gameResources.upscaledFramebuffer) {
-                m.gl.disable(GL_DEPTH_TEST)
-                m.gl.clear(GL_COLOR_BUFFER_BIT)
-
+            m.device.onRenderTarget(m.gameResources.upscaledFramebuffer, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 withSpritePipeline(m.gameResources.spriteBatcher, m.gameResources.shader2d) {
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))
 
@@ -535,9 +503,7 @@ sealed class Stage(val m: Gessyban) {
                 } */
             }
 
-            m.device.onRenderTarget(m.windowRenderTarget) {
-                m.gl.clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT) // clear the framebuffer
-
+            m.device.onRenderTarget(m.windowRenderTarget, clear = ClearOptions(ClearOptions.Color(23 / 255f, 35 / 255f, 35 / 255f, 1.0f), depth = 1f)) {
                 withPipeline(Pipeline(m.gameResources.shaderPixelFade, DepthState(write = true))) {
                     this.shader.uModel.set(Matrix4f().scale(1280f, 720f, 1f).get(FloatArray(16)))
                     this.shader.uProjection.set(m.gameResources.screenProjectionMatrix.get(FloatArray(16)))

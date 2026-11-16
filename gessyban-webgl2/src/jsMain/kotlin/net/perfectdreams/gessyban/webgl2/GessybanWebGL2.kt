@@ -85,9 +85,6 @@ class GessybanWebGL2(val vfs: VirtualFileSystem) {
             this@GessybanWebGL2.gessyban = Gessyban(gl, gpu, vfs, resources)
             this@GessybanWebGL2.gessyban.windowRenderTarget.resize(webgl2.drawingBufferWidth, webgl2.drawingBufferHeight)
 
-            // Set the clear color
-            gl.clearColor(23 / 255f, 35 / 255f, 35 / 255f, 1.0f)
-
             fun render() {
                 gessyban.render()
 

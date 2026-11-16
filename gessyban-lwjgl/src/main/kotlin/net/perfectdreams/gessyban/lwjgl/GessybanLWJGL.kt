@@ -174,9 +174,6 @@ class GessybanLWJGL {
         val resources = runBlocking { GameResources.load(gpu, textureManager, JsonMeshManager(),  vfs) }
         this.gessyban = Gessyban(gl, gpu, vfs, resources)
 
-        // Set the clear color
-        gl.clearColor(23 / 255f, 35 / 255f, 35 / 255f, 1.0f)
-
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while (!glfwWindowShouldClose(window)) {
